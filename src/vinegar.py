@@ -1,6 +1,8 @@
 import re
 import sys
 
+########## Scanner ##########
+
 class Scanner(object):
     def __init__(self, text):
         self.text = text
@@ -70,7 +72,31 @@ class Scanner(object):
         else:
             return False
 
+########## AST ##########
 
+class AST:
+    pass
+
+
+class Then(AST):
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
+    def __repr__(self):
+        return 'Then({}, {})'.format(repr(self.a), repr(self.b))
+
+
+class Else(AST):
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
+    def __repr__(self):
+        return 'Else({}, {})'.format(repr(self.a), repr(self.b))
+
+
+########## Parser ##########
 #
 # Program     ::= {Definition}.
 # Definition  ::= Name<def> "=" Expression ";".
@@ -104,22 +130,18 @@ class Parser:
         self.definitions[name] = expr
 
     def expression(self):
-        alts = ['|']
-        t = self.term()
-        alts.append(t)
+        t1 = self.term()
         while self.scanner.consume('|'):
-            t = self.term()
-            alts.append(t)
-        return alts
+            t2 = self.term()
+            t1 = Else(t1, t2)
+        return t1
 
     def term(self):
-        thens = ['&']
-        a = self.atom()
-        thens.append(a)
+        a1 = self.atom()
         while self.scanner.on_type('word'):
-            a = self.atom()
-            thens.append(a)
-        return thens
+            a2 = self.atom()
+            a1 = Then(a1, a2)
+        return a1
 
     def atom(self):
         if self.scanner.consume('('):
@@ -135,20 +157,17 @@ class Parser:
 def interpret(definitions, stack, expr):
     # print('>>> {}'.format(expr))
     if isinstance(expr, str):
-        return interpret(definitions, stack, definitions[expr])
-    elif isinstance(expr, list):
-        if expr[0] == '&':
-            for elem in expr[1:]:
-                stack = interpret(definitions, stack, elem)
-            return stack
-        elif expr[0] == '|':
-            try:
-                stack = interpret(definitions, stack, expr[1])
-            except Exception as e:
-                return stack + [e]
-            return stack
-        else:
-            raise NotImplementedError('Expected & or |')
+        stack = interpret(definitions, stack, definitions[expr])
+        return stack
+    elif isinstance(expr, Then):
+        stack = interpret(definitions, stack, expr.a)
+        stack = interpret(definitions, stack, expr.b)
+    elif isinstance(expr, Else):
+        try:
+            stack = interpret(definitions, stack, expr.a)
+        except Exception as e:
+            stack = interpret(definitions, stack, expr.b)
+        return stack
     else:
         raise NotImplementedError('Expected atom or operation')
 
