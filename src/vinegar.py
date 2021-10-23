@@ -70,6 +70,7 @@ class Scanner(object):
         else:
             return False
 
+
 #
 # Program     ::= {Definition}.
 # Definition  ::= Name<def> "=" Expression ";".
@@ -131,13 +132,35 @@ class Parser:
         return word
 
 
+def interpret(definitions, stack, expr):
+    # print('>>> {}'.format(expr))
+    if isinstance(expr, str):
+        return interpret(definitions, stack, definitions[expr])
+    elif isinstance(expr, list):
+        if expr[0] == '&':
+            for elem in expr[1:]:
+                stack = interpret(definitions, stack, elem)
+            return stack
+        elif expr[0] == '|':
+            try:
+                stack = interpret(definitions, stack, expr[1])
+            except Exception as e:
+                return stack + [e]
+            return stack
+        else:
+            raise NotImplementedError('Expected & or |')
+    else:
+        raise NotImplementedError('Expected atom or operation')
+
+
 def main():
     program_text = sys.stdin.read()
     scanner = Scanner(program_text)
     parser = Parser(scanner)
     definitions = parser.program()
     print(definitions)
-
+    s = interpret(definitions, [], 'main')
+    print(s)
 
 if __name__ == '__main__':
     main()
