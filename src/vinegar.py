@@ -14,7 +14,7 @@ class Scanner(object):
     def near_text(self, length=10):
         return self.text[self.pos:self.pos + length]
 
-    def scan_pattern(self, pattern, type, token_group=1, rest_group=2):
+    def scan_pattern(self, pattern, type, token_group=1):
         pattern = r'(' + pattern + r')'
         regexp = re.compile(pattern, flags=re.DOTALL)
         match = regexp.match(self.text, pos=self.pos)
@@ -38,7 +38,9 @@ class Scanner(object):
             return
         if self.scan_pattern(r'\;', 'punct'):
             return
-        if self.scan_pattern(r'\(|\)|\{|\}|\[|\]', 'bracket'):
+        if self.scan_pattern(r'\(|\)|\{|\}', 'bracket'):
+            return
+        if self.scan_pattern(r'\[(.*?)\]', 'bracketedtext', token_group=2):
             return
         if self.scan_pattern(r"[a-zA-Z_]['a-zA-Z0-9_-]*", 'word'):
             return
@@ -80,6 +82,15 @@ class AST:
     pass
 
 
+class Atom(AST):
+    def __init__(self, word, ancillary_text=None):
+        self.word = word
+        self.ancillary_text = ancillary_text
+
+    def __repr__(self):
+        return 'Atom({}, ancillary_text={})'.format(repr(self.word), repr(self.ancillary_text))
+
+
 class Then(AST):
     def __init__(self, a, b):
         self.a = a
@@ -101,10 +112,10 @@ class Else(AST):
 ########## Parser ##########
 #
 # Program     ::= {Definition}.
-# Definition  ::= Name<def> "=" Expression ";".
+# Definition  ::= name<def> "=" Expression ";".
 # Expression  ::= Term {"|" Term}.
 # Term        ::= Atom {Atom}.
-# Atom        ::= "(" Expression ")" | Name<use>.
+# Atom        ::= "(" Expression ")" | name<use> [bracketedtext].
 #
 
 class ParseError(ValueError):
@@ -123,8 +134,6 @@ class Parser:
 
     def definition(self):
         name = self.scanner.token
-        if name in self.definitions:
-            raise ParseError('Name "{}" already defined'.format(name))
         self.scanner.scan()
         self.scanner.expect('=')
         expr = self.expression()
@@ -153,7 +162,11 @@ class Parser:
         self.scanner.check_type('word')
         word = self.scanner.token
         self.scanner.scan()
-        return word
+        ancillary_text = None
+        if self.scanner.on_type('bracketed_text'):
+            ancillary_text = self.scanner.token
+            self.scanner.scan()
+        return Atom(word, ancillary_text=ancillary_text)
 
 
 class Result:
@@ -172,7 +185,7 @@ class OK(Result):
     pass
 
 
-def b_swap(stack):
+def b_swap(stack, **kwargs):
     if len(stack) < 2:
         return Failure('underflow')
     n = stack[:]
@@ -182,7 +195,7 @@ def b_swap(stack):
     return OK(n)
 
 
-def b_push(stack):
+def b_push(stack, **kwargs):
     n = stack[:]
     n.append(1)
     n.append(2)
@@ -197,10 +210,12 @@ BUILTINS = {
 
 def interpret(definitions, stack, expr):
     # print('>>> {}'.format(expr))
-    if callable(expr):
-        return expr(stack)
-    elif isinstance(expr, str):
-        return interpret(definitions, stack, definitions[expr])
+    if isinstance(expr, Atom):
+        entry = definitions[expr.word]
+        if callable(entry):
+            return entry(stack, ancillary_text=expr.ancillary_text)
+        else:
+            return interpret(definitions, stack, entry)
     elif isinstance(expr, Then):
         result = interpret(definitions, stack, expr.a)
         if isinstance(result, OK):
@@ -229,7 +244,7 @@ def main():
     parser = Parser(scanner, BUILTINS.copy())
     definitions = parser.program()
     # print(definitions['main'])
-    s = interpret(definitions, [], 'main')
+    s = interpret(definitions, [], definitions['main'])
     print(s)
 
 
