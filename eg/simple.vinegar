@@ -1,1 +1,1 @@
-main = push swap;
+main = push[100] push[200] swap;

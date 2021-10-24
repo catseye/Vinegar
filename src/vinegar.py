@@ -23,7 +23,7 @@ class Scanner(object):
         else:
             self.type = type
             self.token = match.group(token_group)
-            self.pos += len(self.token)
+            self.pos += len(match.group(1))
             return True
 
     def scan(self):
@@ -40,7 +40,7 @@ class Scanner(object):
             return
         if self.scan_pattern(r'\(|\)|\{|\}', 'bracket'):
             return
-        if self.scan_pattern(r'\[(.*?)\]', 'bracketedtext', token_group=2):
+        if self.scan_pattern(r'\[(.*?)\]', 'bracketed_text', token_group=2):
             return
         if self.scan_pattern(r"[a-zA-Z_]['a-zA-Z0-9_-]*", 'word'):
             return
@@ -195,11 +195,13 @@ def b_swap(stack, **kwargs):
     return OK(n)
 
 
-def b_push(stack, **kwargs):
-    n = stack[:]
-    n.append(1)
-    n.append(2)
-    return OK(n)
+def b_push(stack, ancillary_text=None):
+    try:
+        n = stack[:]
+        n.append(int(ancillary_text))
+        return OK(n)
+    except Exception as e:
+        return Fail(str(e))
 
 
 BUILTINS = {
