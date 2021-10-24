@@ -195,18 +195,79 @@ def b_swap(stack, **kwargs):
     return OK(n)
 
 
-def b_push(stack, ancillary_text=None):
+def b_dup(stack, **kwargs):
+    if len(stack) < 1:
+        return Failure('underflow')
+    n = stack[:]
+    n.append(n[-1])
+    return OK(n)
+
+
+def b_str(stack, ancillary_text=None):
+    n = stack[:]
+    n.append(ancillary_text)
+    # TODO think of a contrived way in which this can fail
+    return OK(n)
+
+
+def b_int(stack, ancillary_text=None):
     try:
         n = stack[:]
         n.append(int(ancillary_text))
         return OK(n)
     except Exception as e:
-        return Fail(str(e))
+        return Failure(str(e))
+
+
+def b_equal(stack, ancillary_text=None):
+    if len(stack) < 2:
+        return Failure('underflow')
+    n = stack[:]
+    a = n.pop()
+    b = n.pop()
+    if a == b:
+        return OK(n)
+    else:
+        return Failure('unequal')
+
+
+def b_pop(stack, ancillary_text=None):
+    if len(stack) < 1:
+        return Failure('underflow')
+    n = stack[:]
+    a = n.pop()
+    return OK(n)
+
+
+def b_mul(stack, ancillary_text=None):
+    if len(stack) < 2:
+        return Failure('underflow')
+    n = stack[:]
+    a = n.pop()
+    b = n.pop()
+    n.append(b * a)
+    return OK(n)
+
+
+def b_sub(stack, ancillary_text=None):
+    if len(stack) < 2:
+        return Failure('underflow')
+    n = stack[:]
+    a = n.pop()
+    b = n.pop()
+    n.append(b - a)
+    return OK(n)
 
 
 BUILTINS = {
     'swap': b_swap,
-    'push': b_push,
+    'dup': b_dup,
+    'str': b_str,
+    'int': b_int,
+    'equal': b_equal,
+    'pop': b_pop,
+    'mul': b_mul,
+    'sub': b_sub,
 }
 
 

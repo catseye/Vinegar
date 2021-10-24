@@ -1,0 +1,2 @@
+main = int[5] fact;
+fact = dup int[1] equal | dup int[1] sub fact mul;
