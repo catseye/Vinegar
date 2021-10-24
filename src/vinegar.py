@@ -45,14 +45,15 @@ class Scanner(object):
         if self.scan_pattern(r'.', 'unknown character'):
             return
         else:
-            raise AssertionError("this should never happen, self.text=(%s), self.pos=(%s)" % (self.text, self.pos))
+            raise AssertionError("this should never happen, self.text=({}), self.pos=({})".format(self.text, self.pos))
 
     def expect(self, token):
         if self.token == token:
             self.scan()
         else:
-            raise SyntaxError(u"Expected '%s', but found '%s' (near '%s')" %
-                              (token, self.token, self.near_text()))
+            raise ParseError("Expected '{}', but found '{}' (near '{}')".format(
+                token, self.token, self.near_text()
+            ))
 
     def on(self, *tokens):
         return self.token in tokens
@@ -62,8 +63,9 @@ class Scanner(object):
 
     def check_type(self, *types):
         if not self.on_type(*types):
-            raise SyntaxError(u"Expected %s, but found %s ('%s') (near '%s')" %
-                              (types, self.type, self.token, self.near_text()))
+            raise ParseError("Expected {}, but found {} ('{}') (near '{}')".format(
+                types, self.type, self.token, self.near_text()
+            ))
 
     def consume(self, *tokens):
         if self.token in tokens:
@@ -110,9 +112,9 @@ class ParseError(ValueError):
 
 
 class Parser:
-    def __init__(self, scanner):
+    def __init__(self, scanner, definitions):
         self.scanner = scanner
-        self.definitions = {}
+        self.definitions = definitions
 
     def program(self):
         while not self.scanner.on_type('EOF'):
@@ -154,32 +156,82 @@ class Parser:
         return word
 
 
+class Result:
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return '{}({})'.format(self.__class__.__name__, self.value)
+
+
+class Failure(Result):
+    pass
+
+
+class OK(Result):
+    pass
+
+
+def b_swap(stack):
+    if len(stack) < 2:
+        return Failure('underflow')
+    n = stack[:]
+    a = n[-1]
+    n[-1] = n[-2]
+    n[-2] = a
+    return OK(n)
+
+
+def b_push(stack):
+    n = stack[:]
+    n.append(1)
+    n.append(2)
+    return OK(n)
+
+
+BUILTINS = {
+    'swap': b_swap,
+    'push': b_push,
+}
+
+
 def interpret(definitions, stack, expr):
     # print('>>> {}'.format(expr))
-    if isinstance(expr, str):
-        stack = interpret(definitions, stack, definitions[expr])
-        return stack
+    if callable(expr):
+        return expr(stack)
+    elif isinstance(expr, str):
+        return interpret(definitions, stack, definitions[expr])
     elif isinstance(expr, Then):
-        stack = interpret(definitions, stack, expr.a)
-        stack = interpret(definitions, stack, expr.b)
+        result = interpret(definitions, stack, expr.a)
+        if isinstance(result, OK):
+            stack = result.value
+            return interpret(definitions, stack, expr.b)
+        elif isinstance(result, Failure):
+            return result
+        else:
+            raise NotImplementedError(result)
     elif isinstance(expr, Else):
-        try:
-            stack = interpret(definitions, stack, expr.a)
-        except Exception as e:
-            stack = interpret(definitions, stack, expr.b)
-        return stack
+        result = interpret(definitions, stack, expr.a)
+        if isinstance(result, OK):
+            return result
+        elif isinstance(result, Failure):
+            # TODO push the Failure onto the stack...
+            return interpret(definitions, stack, expr.b)
+        else:
+            raise NotImplementedError(result)
     else:
-        raise NotImplementedError('Expected atom or operation')
+        raise NotImplementedError('Expected atom or operation, got {}'.format(expr))
 
 
 def main():
     program_text = sys.stdin.read()
     scanner = Scanner(program_text)
-    parser = Parser(scanner)
+    parser = Parser(scanner, BUILTINS.copy())
     definitions = parser.program()
-    print(definitions)
+    # print(definitions['main'])
     s = interpret(definitions, [], 'main')
     print(s)
+
 
 if __name__ == '__main__':
     main()
