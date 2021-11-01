@@ -1,7 +1,8 @@
 import re
 import sys
 
-########## Scanner ##########
+from vinegar.parser import ParseError
+
 
 class Scanner(object):
     def __init__(self, text):
@@ -42,7 +43,7 @@ class Scanner(object):
             return
         if self.scan_pattern(r'\[(.*?)\]', 'bracketed_text', token_group=2):
             return
-        if self.scan_pattern(r"[a-zA-Z_]['a-zA-Z0-9_-]*", 'word'):
+        if self.scan_pattern(r"[a-zA-Z_]['a-zA-Z0-9_-]*\!?", 'word'):
             return
         if self.scan_pattern(r'.', 'unknown character'):
             return

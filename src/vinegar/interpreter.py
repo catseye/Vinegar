@@ -51,16 +51,28 @@ def b_int(stack, ancillary_text=None):
         return Failure(str(e))
 
 
-def b_equal(stack, ancillary_text=None):
+def b_eq(stack, ancillary_text=None):
     if len(stack) < 2:
         return Failure('underflow')
     n = stack[:]
-    a = n.pop()
     b = n.pop()
+    a = n.pop()
     if a == b:
         return OK(n)
     else:
         return Failure('unequal')
+
+
+def b_gt(stack, ancillary_text=None):
+    if len(stack) < 2:
+        return Failure('underflow')
+    n = stack[:]
+    b = n.pop()
+    a = n.pop()
+    if a > b:
+        return OK(n)
+    else:
+        return Failure('not greater than')
 
 
 def b_pop(stack, ancillary_text=None):
@@ -96,7 +108,8 @@ BUILTINS = {
     'dup': b_dup,
     'str': b_str,
     'int': b_int,
-    'equal': b_equal,
+    'eq!': b_eq,
+    'gt!': b_gt,
     'pop': b_pop,
     'mul': b_mul,
     'sub': b_sub,

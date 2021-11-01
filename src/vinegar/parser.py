@@ -1,7 +1,6 @@
 from vinegar.ast import Atom, Then, Else
 
 
-########## Parser ##########
 #
 # Program     ::= {Definition}.
 # Definition  ::= name<def> "=" Expression ";".
@@ -41,7 +40,7 @@ class Parser:
 
     def term(self):
         a1 = self.atom()
-        while self.scanner.on_type('word'):
+        while self.scanner.on_type('word') or self.scanner.token == '(':
             a2 = self.atom()
             a1 = Then(a1, a2)
         return a1

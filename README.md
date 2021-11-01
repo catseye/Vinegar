@@ -158,6 +158,11 @@ integer in decimal notation, pushes _n_ onto the stack.
     other = int[3];
     ==> OK([3])
 
+(Why, you may ask, is there all this square brackets and stuff
+around simple literal values?  Ah!  That's so that literals can
+fail!  If it's not possible to parse the contents of the
+`[...]` part into a valid constant value, it has failed!)
+
 There is a built-in operation to swap the top two values on the stack.
 
     main = int[100] int[200] swap;
@@ -169,6 +174,11 @@ discard it.
     main = int[40] int[50] pop int[60];
     ==> OK([40, 60])
 
+There are some usual arithmetic operations too.
+
+    main = int[4] int[5] mul int[6] sub;
+    ==> OK([14])
+
 If there are not enough values on the stack for an operation, it fails
 with underflow.
 
@@ -178,15 +188,29 @@ with underflow.
 There is a built-in operation to pop the topmost two values and assert
 that they are equal.
 
-    main = int[5] int[5] equal | int[4];
+    main = int[5] int[5] eq! | int[4];
     ==> OK([])
 
-    main = int[5] int[8] equal | int[4];
+    main = int[5] int[8] eq! | int[4];
     ==> OK([4])
+
+There is a built-in operation to pop the topmost two values and assert
+that the second is greater than the first.
+
+    main = int[5] int[5] gt! | int[4];
+    ==> OK([4])
+
+    main = int[5] int[8] gt! | int[4];
+    ==> OK([4])
+
+    main = int[8] int[5] gt! | int[4];
+    ==> OK([])
 
 OK, _now_ let's try to write a factorial function in Vinegar.
 
-    fact = dup <1> gt! dup <1> sub fact mul | nop
+    fact = dup int[1] gt! dup int[1] sub fact mul | int[1] pop;
+    main = int[5] fact;
+    ==> OK([120])
 
 What we have here is:
 
@@ -197,7 +221,8 @@ get the `fact` of that value, and multiply the argument
 (itself - no `dup` this time) by that result.  And leave that
 on the stack, as the result value.
 
-If any operation there failed, we just perform no operation.
+If any operation there failed, we just do nothing (written
+out as pushing a 1 on the stack then immediately `pop`ping it.)
 So for example, if our assertion that the argument was
 greater than 1 failed, it will just leave the argument on
 the stack, as the result value.
@@ -208,13 +233,8 @@ garbage happens to be on the stack as our result.  Rather,
 we want to fail too.  So maybe we can write this more
 pointifically.
 
-    fact = dup <1> eq! | dup <1> sub fact mul
-
-(Here's that factorial in test form.  I need to make the
-syntax consistent, I know, sorry about that.  Anyway:)
-
+    fact = dup int[1] eq! | dup int[1] sub fact mul;
     main = int[5] fact;
-    fact = dup int[1] equal | dup int[1] sub fact mul;
     ==> OK([120])
 
 Now, we take the argument and assert that it *is* 1.  If
@@ -227,7 +247,9 @@ argument that is zero or negative.  What's the factorial
 of such a number?  Let's say, for the sake of argument,
 it's considered an error.  We can add that as an assertion.
 
-    fact = dup <0> gt! (dup <1> eq! | dup <1> sub fact mul)
+    fact = dup int[0] gt! (dup int[1] eq! | dup int[1] sub fact mul);
+    main = int[5] fact;
+    ==> OK([120])
 
 If it's 0 or negative, the `gt!` assertion fails, and
 the whole thing fails.  If it's 1, the `eq!` assertion
@@ -237,11 +259,6 @@ doesn't fail, and 1 is returned.  If it's greater than
 Note that we do need parentheses here so that when the
 `gt!` fails, all of `fact` fails, instead of it falling
 back to the operation on the RHS of the `|`.
-
-Lastly, you may ask, why are there angle brackets around
-the literal values 0 and 1?  That's so that literals can
-fail; if it's not possible to parse the contents of a
-`<...>` into a valid constant value, it has failed!
 
 ### A bit more concatenative
 
@@ -272,10 +289,10 @@ Armed with these facts, we can rewrite the above definition of
 `fact` without infix operators and without parentheses
 using multiple definitions, in this way:
 
-    fact =& fac1 fac2
-    fac1 =& dup <0> gt!
-    fac2 =| fac3 fac4
-    fac3 =& dup <1> eq!
-    fac4 =& dup <1> sub fact mul
+    fact =& fac1 fac2;
+    fac1 =& dup int[0] gt!;
+    fac2 =| fac3 fac4;
+    fac3 =& dup int[1] eq!;
+    fac4 =& dup int[1] sub fact mul;
 
 There!  Are you happy now?
