@@ -1,3 +1,3 @@
 #!/bin/sh
 
-falderal Tests.md
+falderal README.md

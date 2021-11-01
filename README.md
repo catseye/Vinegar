@@ -98,11 +98,23 @@ and
 
     (a | b) | c = a | (b | c) = a | b | c
 
+### Similar things
+
 It's all a bit like `MonadPlus` in Haskell, with concatenation
 being a lot like `>=>`, although I really had `Either` more
 in mind than `Maybe`, but `Either` isn't an instance of
 `MonadPlus` for technical reasons, and I don't understand
-monads anyway I'm sure.
+monads anyway I'm sure.  I'd explain further, but it's strictly
+taboo -- I might start babbling about burritos, you see.
+
+Probably a more familiar thing that it's similar to is the
+Bourne shell.  If `a` and `b` are executables, then `a && b`
+executes `a` and checks the error code.  If the error code is
+non-zero, it exits with that exit code, otherwise it executes
+`b` and exits with its exit code.  Alternately, `a || b`
+executes `a` and checks the error code.  If the error code is
+_zero_, it exits with that exit code, otherwise it executes
+`b` and exits with its exit code.
 
 ### The practical upshot of all this
 
@@ -127,6 +139,53 @@ substitute for a chain of `elsif`s.
 
 As an example, let's try to write a factorial function in Vinegar.
 
+Well, first, let's get some preliminaries out of the way.  Up 'til
+now we've been fairly vague about the actual language.  Let's pin
+down some concrete syntax.
+
+    -> Tests for functionality "Execute Vinegar Program"
+
+    -> Functionality "Execute Vinegar Program" is implemented by
+    -> shell command
+    -> "python3 bin/vinegar <%(test-body-file)"
+
+Each definition is on its own line, which is terminated by
+a semicolon.  The result of executing a program, is the result
+of executing `main`.  The form `int[n]` where _n_ is a literal
+integer in decimal notation, pushes _n_ onto the stack.
+
+    main = other;
+    other = int[3];
+    ==> OK([3])
+
+There is a built-in operation to swap the top two values on the stack.
+
+    main = int[100] int[200] swap;
+    ==> OK([200, 100])
+
+There is a built-in operation to pop the topmost value off the stack and
+discard it.
+
+    main = int[40] int[50] pop int[60];
+    ==> OK([40, 60])
+
+If there are not enough values on the stack for an operation, it fails
+with underflow.
+
+    main = swap;
+    ==> Failure(underflow)
+
+There is a built-in operation to pop the topmost two values and assert
+that they are equal.
+
+    main = int[5] int[5] equal | int[4];
+    ==> OK([])
+
+    main = int[5] int[8] equal | int[4];
+    ==> OK([4])
+
+OK, _now_ let's try to write a factorial function in Vinegar.
+
     fact = dup <1> gt! dup <1> sub fact mul | nop
 
 What we have here is:
@@ -150,6 +209,13 @@ we want to fail too.  So maybe we can write this more
 pointifically.
 
     fact = dup <1> eq! | dup <1> sub fact mul
+
+(Here's that factorial in test form.  I need to make the
+syntax consistent, I know, sorry about that.  Anyway:)
+
+    main = int[5] fact;
+    fact = dup int[1] equal | dup int[1] sub fact mul;
+    ==> OK([120])
 
 Now, we take the argument and assert that it *is* 1.  If
 it is, we just return it.  If not, we compute factorial
