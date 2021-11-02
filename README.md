@@ -36,7 +36,8 @@ This is not strictly speaking a concatenative language anymore, so we
 call it "semi-concatenative".
 
 (But later on we'll consider a variation on how things are arranged
-here, that can make it all look "a bit more concatenative" again.)
+here that can make it all look
+"[a bit more concatenative](#a-bit-more-concatenative)" again.)
 
 ### Whence "every operation can fail"?
 
@@ -119,14 +120,12 @@ _zero_, it exits with that exit code, otherwise it executes
 ### The practical upshot of all this
 
 With the alternation operator, we can implement exception handling.
+In something like `a b c | d`, the `d` will be executed if `a`
+fails, or if `b` fails, or if `c` fails.  Failing is like "throw"
+and `|` is like "catch".
 
-In fact, in `a | b`, `b` probably should have some access to
-`a`'s error result, if `a` failed.  An error result would be
-like an error message or a traceback.  Indeed, the same sort
-of information one would expect from an exception.
-
-But here is another twist.  We can use alternation as a replacement
-for `if...then...else` constructs: instead of checking _if_
+But here is another twist.  We can _also_ use alternation to
+implement plain old conditional execution.  Instead of checking _if_
 an expression equals some value, we _assert_ that it _does_
 equal some value.  If we happen to be wrong, then that is a failure.
 We handle it on the RHS of a `|` just like we would handle any
@@ -134,6 +133,23 @@ other failure.  Rather than putting it in an `else` clause.
 
 As a bonus, a chain like `a | b | c | d` is a terse
 substitute for a chain of `elsif`s.
+
+So what is the actual difference between these two language features?
+Well, failure happens for a reason.  Sometimes you have enough
+information to predict exactly what that reason would be, so you
+don't really care about it, and your language construct doesn't
+provide it (`if`, `Maybe`).  Other times, you don't have enough
+information to predict it, so you do want your language construct
+to provide it, so that you can work with it (`catch`, `Either`).
+
+Here we observe that, if we can pick only one of these alternatives,
+it's better to be provided with the reason for failure than to be
+not provided with it, because we can't obtain it otherwise, and
+if we really don't want it, we can always throw it out.
+
+So in Vinegar, the RHS of an alternation always begins executing
+with the failure value that caused the RHS to execute pushed onto
+the top of the stack.
 
 ### Example: Factorial in Vinegar
 
@@ -158,10 +174,13 @@ integer in decimal notation, pushes _n_ onto the stack.
     other = int[3];
     ==> OK([3])
 
-(Why, you may ask, is there all this square brackets and stuff
+Why, you may ask, is there all this square brackets and stuff
 around simple literal values?  Ah!  That's so that literals can
 fail!  If it's not possible to parse the contents of the
-`[...]` part into a valid constant value, it has failed!)
+`[...]` part into a valid constant value, it has failed!
+
+    main = int[lEEt];
+    ==> Failure(invalid literal for int() with base 10: 'lEEt')
 
 There is a built-in operation to swap the top two values on the stack.
 
@@ -188,27 +207,29 @@ with underflow.
 There is a built-in operation to pop the topmost two values and assert
 that they are equal.
 
-    main = int[5] int[5] eq! | int[4];
+    main = int[5] int[5] eq!;
     ==> OK([])
 
-    main = int[5] int[8] eq! | int[4];
-    ==> OK([4])
+    main = int[5] int[8] eq!;
+    ==> Failure(unequal)
 
 There is a built-in operation to pop the topmost two values and assert
 that the second is greater than the first.
 
-    main = int[5] int[5] gt! | int[4];
-    ==> OK([4])
+    main = int[5] int[5] gt!;
+    ==> Failure(not greater than)
 
-    main = int[5] int[8] gt! | int[4];
-    ==> OK([4])
+    main = int[5] int[8] gt!;
+    ==> Failure(not greater than)
 
-    main = int[8] int[5] gt! | int[4];
+    main = int[8] int[5] gt!;
     ==> OK([])
 
 OK, _now_ let's try to write a factorial function in Vinegar.
 
-    fact = dup int[1] gt! dup int[1] sub fact mul | int[1] pop;
+### That factorial function in full
+
+    fact = dup int[1] gt! dup int[1] sub fact mul | pop;
     main = int[5] fact;
     ==> OK([120])
 
@@ -221,8 +242,8 @@ get the `fact` of that value, and multiply the argument
 (itself - no `dup` this time) by that result.  And leave that
 on the stack, as the result value.
 
-If any operation there failed, we just do nothing (written
-out as pushing a 1 on the stack then immediately `pop`ping it.)
+If any operation there failed, we just do nothing (we take
+the failure value off the stack with `pop` and discard it.)
 So for example, if our assertion that the argument was
 greater than 1 failed, it will just leave the argument on
 the stack, as the result value.
@@ -233,7 +254,7 @@ garbage happens to be on the stack as our result.  Rather,
 we want to fail too.  So maybe we can write this more
 pointifically.
 
-    fact = dup int[1] eq! | dup int[1] sub fact mul;
+    fact = dup int[1] eq! | pop dup int[1] sub fact mul;
     main = int[5] fact;
     ==> OK([120])
 
@@ -247,7 +268,7 @@ argument that is zero or negative.  What's the factorial
 of such a number?  Let's say, for the sake of argument,
 it's considered an error.  We can add that as an assertion.
 
-    fact = dup int[0] gt! (dup int[1] eq! | dup int[1] sub fact mul);
+    fact = dup int[0] gt! (dup int[1] eq! | pop dup int[1] sub fact mul);
     main = int[5] fact;
     ==> OK([120])
 

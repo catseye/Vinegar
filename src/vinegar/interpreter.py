@@ -51,7 +51,7 @@ def b_int(stack, ancillary_text=None):
         return Failure(str(e))
 
 
-def b_eq(stack, ancillary_text=None):
+def b_eq(stack, **kwargs):
     if len(stack) < 2:
         return Failure('underflow')
     n = stack[:]
@@ -63,7 +63,7 @@ def b_eq(stack, ancillary_text=None):
         return Failure('unequal')
 
 
-def b_gt(stack, ancillary_text=None):
+def b_gt(stack, **kwargs):
     if len(stack) < 2:
         return Failure('underflow')
     n = stack[:]
@@ -75,7 +75,7 @@ def b_gt(stack, ancillary_text=None):
         return Failure('not greater than')
 
 
-def b_pop(stack, ancillary_text=None):
+def b_pop(stack, **kwargs):
     if len(stack) < 1:
         return Failure('underflow')
     n = stack[:]
@@ -83,7 +83,7 @@ def b_pop(stack, ancillary_text=None):
     return OK(n)
 
 
-def b_mul(stack, ancillary_text=None):
+def b_mul(stack, **kwargs):
     if len(stack) < 2:
         return Failure('underflow')
     n = stack[:]
@@ -93,7 +93,7 @@ def b_mul(stack, ancillary_text=None):
     return OK(n)
 
 
-def b_sub(stack, ancillary_text=None):
+def b_sub(stack, **kwargs):
     if len(stack) < 2:
         return Failure('underflow')
     n = stack[:]
@@ -138,8 +138,9 @@ def interpret(definitions, stack, expr):
         if isinstance(result, OK):
             return result
         elif isinstance(result, Failure):
-            # TODO push the Failure onto the stack...
-            return interpret(definitions, stack, expr.b)
+            stack2 = stack[:]
+            stack2.append(result)
+            return interpret(definitions, stack2, expr.b)
         else:
             raise NotImplementedError(result)
     else:
