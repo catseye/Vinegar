@@ -4,8 +4,6 @@ Vinegar
 WIP
 | _See also:_ [Tandem](https://github.com/catseye/Tandem)
 ∘ [Tamsin](https://github.com/catseye/Tamsin)
-∘ [Carriage](https://github.com/catseye/Carriage)
-∘ [Wanda](https://github.com/catseye/Wanda)
 
 - - - -
 
@@ -321,6 +319,46 @@ using multiple definitions, in this way:
 There!  <s>Are you happy now?</s>  Don't that just beat all?
 In light of this stellar feature it is expected that serious
 programmers would treat the plain `=` form of definition as
-a sort of "wimpmode" and shun it.
+a kind of [wimpmode](https://esolangs.org/wiki/Wimpmode) and shun it.
 
+### Further work
 
+What we have here is probably sufficient for a version 0.1 release
+of the language -- it demonstrates most of the things I wanted to
+demonstrate with this idea.  Still, it leaves a lot to be desired.
+
+In particular, what *is* a Failure object?  In the current
+implementation it contains a string, which is supposed to be
+the reason that the failure happened.  Certainly, one could compare
+two Failures for equality, based on this failure message.  But how
+useful or interesting is that, actually?  So it is not implemented.
+
+I think what a Failure *should* be is, not just a message, but a
+representation of the program state when the failure occured.
+Should it be the entire program state?  I'm not sure.
+
+Certainly, real-life exceptions usually include a backtrace, which
+lists all the calls that were in effect when the failure occurred.
+
+If a Failure were that, then a Failure would be a kind of list.
+And there hasn't been much thought into what kinds of values can
+actually exist on the Vinegar stack.  Can a list exist there?
+There is a certain urge to disallow that in the name of simplifying
+memory management -- the Forth school, sort of.  But, having lists
+on the stack, and being able to manipulate them, would be very
+powerful; and having them unavoidably be Failures as well, would be
+rather esoteric.
+
+Can you `raise` a Failure once you have one on the stack?  You ought
+to, but it raises a vaguely philosophical question: since `raise` can
+fail (all operations can fail in Vinegar), how do you know when `raise`
+succeeded?  How do you know that it actually re-raised a
+`Failure(underflow)` it had on the stack, versus that there was nothing
+on the stack and it actually underflowed?  Maybe you don't, maybe you
+give up on that epistemological question.
+
+If a Failure represents the state of the program when it failed, is
+it a continuation?  Can you continue it where it left off, with something
+changed, to try to make it avoid the failure this time?  Why, wouldn't
+this be a neat way to implement backtracking search?  If you could work
+out how to make it work neatly, I mean.
