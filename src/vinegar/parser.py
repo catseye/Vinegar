@@ -3,7 +3,7 @@ from vinegar.ast import Atom, Then, Else
 
 #
 # Program     ::= {Definition}.
-# Definition  ::= name<def> "=" Expression ";".
+# Definition  ::= name<def> ("=" Expression | "=&" Term | "=|" Term) ";".
 # Expression  ::= Term {"|" Term}.
 # Term        ::= Atom {Atom}.
 # Atom        ::= "(" Expression ")" | name<use> [bracketedtext].
@@ -26,8 +26,14 @@ class Parser:
     def definition(self):
         name = self.scanner.token
         self.scanner.scan()
-        self.scanner.expect('=')
-        expr = self.expression()
+        if self.scanner.consume('='):
+            expr = self.expression()
+        elif self.scanner.consume('=&'):
+            expr = self.term()
+        elif self.scanner.consume('=|'):
+            expr = self.term(constructor=Else)
+        else:
+            raise ParseError('Expected `=`, `=&`, or `=|`')
         self.scanner.expect(';')
         self.definitions[name] = expr
 
@@ -38,11 +44,11 @@ class Parser:
             t1 = Else(t1, t2)
         return t1
 
-    def term(self):
+    def term(self, constructor=Then):
         a1 = self.atom()
         while self.scanner.on_type('word') or self.scanner.token == '(':
             a2 = self.atom()
-            a1 = Then(a1, a2)
+            a1 = constructor(a1, a2)
         return a1
 
     def atom(self):

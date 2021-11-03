@@ -1,0 +1,6 @@
+fact =& fac1 fac2;
+fac1 =& dup int[0] gt!;
+fac2 =| fac3 fac4;
+fac3 =& dup int[1] eq!;
+fac4 =& pop dup int[1] sub fact mul;
+main =& int[5] fact;

@@ -314,6 +314,13 @@ using multiple definitions, in this way:
     fac1 =& dup int[0] gt!;
     fac2 =| fac3 fac4;
     fac3 =& dup int[1] eq!;
-    fac4 =& dup int[1] sub fact mul;
+    fac4 =& pop dup int[1] sub fact mul;
+    main =& int[5] fact;
+    ==> OK([120])
 
-There!  Are you happy now?
+There!  <s>Are you happy now?</s>  Don't that just beat all?
+In light of this stellar feature it is expected that serious
+programmers would treat the plain `=` form of definition as
+a sort of "wimpmode" and shun it.
+
+
