@@ -1,1 +1,1 @@
-main = int[5] int[5] equal | int[4];
+main = int[5] int[5] eq! | pop int[4];
