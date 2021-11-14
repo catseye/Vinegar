@@ -1,7 +1,7 @@
 Vinegar
 =======
 
-WIP
+Version 0.1
 | _See also:_ [Tandem](https://github.com/catseye/Tandem)
 ∘ [Tamsin](https://github.com/catseye/Tamsin)
 
