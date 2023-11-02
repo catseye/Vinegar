@@ -2,8 +2,8 @@ Vinegar
 =======
 
 Version 0.1
-| _See also:_ [Tandem](https://github.com/catseye/Tandem)
-∘ [Tamsin](https://github.com/catseye/Tamsin)
+| _See also:_ [Tandem](https://codeberg.org/catseye/Tandem#tandem)
+∘ [Tamsin](https://codeberg.org/catseye/Tamsin#tamsin)
 
 - - - -
 
